@@ -36,7 +36,7 @@ class Whacker(Module, AutoCSR):
         self.submodules.filter_sof = FilterSOF(depth, self._cfg.storage[3])
         self.submodules.producer = Producer(wrport, depth, self.consumer.pos, self._cfg.storage[0])
 
-        self.submodules.pkt_fifo = SyncFIFO(dmatpl(depth), 8)
+        self.submodules.pkt_fifo = SyncFIFO(dmatpl(depth), 8, buffered=True)
 
         self.sink = self.producer.ulpi_sink
         self.comb += [

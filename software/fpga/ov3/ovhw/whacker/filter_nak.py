@@ -36,7 +36,16 @@ class FilterNAK(Module):
             )
         ]
 
-        self.submodules.queue = SyncFIFO(dmatpl(depth), 3)
+        self.submodules.queue = SyncFIFO(dmatpl(depth), 3, buffered=True)
+
+        # "Queue still holds packets to forward". Not the same as source.stb: a
+        # buffered FIFO presents its head one cycle after the write, so the
+        # drain states below must not treat a low source.stb as "empty" or they
+        # would fall back to DEFAULT with packets still queued (and forward them
+        # later under the wrong discard decision). level counts the entry that
+        # is registered in the output stage as well as those still in the RAM.
+        queue_pending = Signal()
+        self.comb += queue_pending.eq(self.queue.fifo.level != 0)
 
         self.comb += [
             self.queue.sink.payload.eq(self.input.payload),
@@ -119,7 +128,7 @@ class FilterNAK(Module):
         )
 
         self.fsm.act("FORWARD",
-            If(self.queue.source.stb,
+            If(queue_pending,
                 # Forward all queued packets, keeping discard signal intact
                 self.output.payload.discard.eq(self.queue.source.payload.discard),
                 self.output.stb.eq(self.queue.source.stb),
@@ -130,7 +139,7 @@ class FilterNAK(Module):
         )
 
         self.fsm.act("DISCARD",
-            If(self.queue.source.stb,
+            If(queue_pending,
                 # Forward all queued packets, ensuring discard signal is set
                 self.output.payload.discard.eq(1),
                 self.output.stb.eq(self.queue.source.stb),

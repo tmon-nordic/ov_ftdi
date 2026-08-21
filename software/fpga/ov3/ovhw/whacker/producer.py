@@ -185,8 +185,10 @@ class Producer(Module):
             NextState("SEND")
         )
 
-        self.fsm.act("SEND",
-            self.out_addr.stb.eq(1),
+        # Drive packet metadata unconditionally. Payload has to be valid only
+        # when stb is asserted in SEND state, in other states payload does not
+        # matter.
+        self.comb += [
             self.out_addr.payload.ts.eq(pkt_timestamp),
             self.out_addr.payload.pid.eq(self.pid.v),
             self.out_addr.payload.pid_valid.eq(self.pid_valid.v),
@@ -198,6 +200,10 @@ class Producer(Module):
             self.out_addr.payload.speed.eq(self.speed.v),
             self.out_addr.payload.start.eq(self.produce_header.v),
             self.out_addr.payload.count.eq(self.size.v),
+        ]
+
+        self.fsm.act("SEND",
+            self.out_addr.stb.eq(1),
             If(self.out_addr.ack,
                 self.produce_header.set(self.produce_write.v),
                 NextState("IDLE")

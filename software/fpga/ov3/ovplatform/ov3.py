@@ -87,6 +87,9 @@ class Platform(XilinxPlatform):
     def __init__(self):
         XilinxPlatform.__init__(self, "xc6slx9-tqg144-3", _io)
 
+        # Prefer block RAM for inferred memories
+        self.toolchain.xst_opt += "\n-ram_style block"
+        self.toolchain.bitgen_opt += " -g INIT_9K:Yes"
 
     def do_finalize(self, fragment):
         self.add_platform_command("""CONFIG VCCAUX = "3.3";""")
